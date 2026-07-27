@@ -33,13 +33,32 @@ install_docker_desktop() {
     fi
 
     # Homebrew renamed the cask from `docker` to `docker-desktop` in 2025.
-    # Try the current name, fall back to the old one on older Homebrew.
-    if brew install --cask docker-desktop 2>/dev/null; then
+    # Resolve which token this Homebrew knows rather than attempting both -
+    # a blind fallback re-downloads and repeats the same failure.
+    local cask_token="docker-desktop"
+    if ! brew info --cask docker-desktop &>/dev/null; then
+        cask_token="docker"
+        print_info "Using legacy cask name: docker"
+    fi
+
+    # Deliberately NOT suppressing stderr. This cask links a binary into
+    # /usr/local/bin, which does not exist on Apple Silicon and needs sudo to
+    # create - hiding that output turns a clear permissions error into a
+    # mystery.
+    if brew install --cask "$cask_token"; then
         print_status "Docker Desktop installed"
-    elif brew install --cask docker 2>/dev/null; then
-        print_status "Docker Desktop installed (legacy cask name)"
     else
         print_error "Could not install Docker Desktop"
+        echo ""
+        print_info "If the error above mentions sudo and /usr/local/bin, this cask"
+        print_info "needs a password. Either run it interactively:"
+        echo ""
+        echo "    brew install --cask $cask_token"
+        echo ""
+        print_info "or pre-create the directory once so future runs are unattended:"
+        echo ""
+        echo "    sudo mkdir -p /usr/local/bin"
+        echo ""
         return 1
     fi
 
