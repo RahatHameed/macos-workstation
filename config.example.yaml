@@ -1,0 +1,113 @@
+# macOS Setup Scripts Configuration
+# Copy this file to config.yaml and customize
+
+# ============================================
+# Modules to install (true/false)
+# ============================================
+modules:
+  homebrew: true     # Homebrew + Xcode Command Line Tools (prerequisite)
+  shell: true        # Zsh + Oh My Zsh
+  git: true          # Git configuration + aliases
+  ssh: true          # SSH key + keychain integration
+  apps: true         # Work applications
+  docker: true       # Docker Desktop or Colima
+  desktop: true      # Dock, Finder, keyboard, fonts
+  vpn: true          # VPN client
+
+# ============================================
+# Applications to install
+# Comment out apps you don't need
+# ============================================
+apps:
+  - chrome
+  - slack
+  - teams
+  - jetbrains-toolbox
+  # - vscode
+  # - discord
+  # - zoom
+  # - postman
+  # Optional (uncomment to install):
+  # - spotify
+  # - dbeaver
+  # - rectangle
+  # - iterm2
+  # - raycast
+  # - screen-sharing   # prints instructions; macOS VNC is built in
+
+# ============================================
+# Docker
+# ============================================
+docker:
+  # runtime: docker-desktop | colima
+  #
+  #   docker-desktop  Official app with GUI and Kubernetes. Requires a paid
+  #                   licence at companies above Docker's size threshold.
+  #   colima          Open-source Lima VM + docker CLI. No GUI, no licence.
+  runtime: docker-desktop
+
+# ============================================
+# Desktop settings
+# ============================================
+desktop:
+  # Dock icon size in pixels
+  dock_size: 48
+
+  # Auto-hide the Dock
+  dock_autohide: true
+
+  # Where screenshots are saved (default: ~/Screenshots)
+  screenshot_dir: ~/Screenshots
+
+# ============================================
+# Startup applications
+#
+# INFORMATIONAL ONLY - this list is not read by any script. It documents what
+# startup/startup-office.sh launches; edit that script to change the list.
+# (App names here contain spaces, which the simple list parser cannot
+# represent, so wiring it up would need a real YAML parser.)
+# ============================================
+startup_apps:
+  - PhpStorm
+  - Slack
+  - Microsoft Teams
+  - Google Chrome
+  - Docker
+  - iTerm
+
+# ============================================
+# VPN Configuration
+# ============================================
+vpn:
+  # Provider: mullvad, nordvpn, protonvpn
+  #
+  # macOS caveat: only Mullvad ships a CLI. The NordVPN and ProtonVPN macOS
+  # clients are GUI-only, so scripted connect/disconnect just opens the app.
+  # Use mullvad if you want full command-line control.
+  provider: mullvad
+
+  # Default country for VPN connection (Mullvad uses 2-letter codes)
+  default_country: de
+
+  # Default city (optional, for a consistent exit location)
+  # Mullvad: fra (Frankfurt), ber (Berlin), dus (Dusseldorf)
+  default_city: ""
+
+  # Auto-connect at login (read by startup-office.sh)
+  auto_connect: false
+
+  # Disable IPv6 to prevent VPN leaks (recommended: true)
+  # On macOS this is applied per network service via `networksetup`,
+  # not via sysctl as on Linux. Requires sudo.
+  ipv6_disable: true
+
+  # Account credentials (provider-specific)
+  # Mullvad: account number (16 digits)
+  # NordVPN / ProtonVPN: leave empty (sign in through the app)
+  account_number: ""
+
+# ============================================
+# Optional tools
+# ============================================
+# Install Claude Code
+install_claude: false

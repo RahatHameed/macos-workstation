@@ -1,0 +1,21 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+*.bak
+
+# BSD sed backup files (if a -i '' call is ever mistyped)
+*.sed-bak
+
+# User config (contains credentials)
+config.yaml
