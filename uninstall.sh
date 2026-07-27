@@ -231,6 +231,7 @@ uninstall_apps() {
 
     cask_uninstall "slack" "Slack"
     cask_uninstall "microsoft-teams" "Microsoft Teams"
+    cask_uninstall "microsoft-outlook" "Microsoft Outlook"
     cask_uninstall "visual-studio-code" "VS Code"
     cask_uninstall "spotify" "Spotify"
     cask_uninstall "discord" "Discord"

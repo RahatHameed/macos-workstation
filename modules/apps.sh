@@ -24,6 +24,12 @@ install_teams() {
     cask_install "microsoft-teams" "Microsoft Teams"
 }
 
+# The Ubuntu repo has no equivalent - it runs Outlook as a Chrome PWA because
+# there is no Linux client. macOS has a native one.
+install_outlook() {
+    cask_install "microsoft-outlook" "Microsoft Outlook"
+}
+
 install_jetbrains_toolbox() {
     cask_install "jetbrains-toolbox" "JetBrains Toolbox"
     print_info "Use Toolbox to install PhpStorm, IntelliJ, etc."
@@ -91,6 +97,7 @@ install_apps() {
         config_has "$config_file" "apps" "chrome" && install_chrome
         config_has "$config_file" "apps" "slack" && install_slack
         config_has "$config_file" "apps" "teams" && install_teams
+        config_has "$config_file" "apps" "outlook" && install_outlook
         config_has "$config_file" "apps" "jetbrains-toolbox" && install_jetbrains_toolbox
         config_has "$config_file" "apps" "vscode" && install_vscode
         config_has "$config_file" "apps" "discord" && install_discord
@@ -107,6 +114,7 @@ install_apps() {
         install_chrome
         install_slack
         install_teams
+        install_outlook
         install_jetbrains_toolbox
     fi
 
@@ -130,6 +138,7 @@ install_apps_interactive() {
     confirm "Install Google Chrome?" && apps+=("chrome")
     confirm "Install Slack?" && apps+=("slack")
     confirm "Install Microsoft Teams?" && apps+=("teams")
+    confirm "Install Microsoft Outlook?" && apps+=("outlook")
     confirm "Install JetBrains Toolbox?" && apps+=("jetbrains-toolbox")
     confirm "Install VS Code?" && apps+=("vscode")
     confirm "Install Spotify?" && apps+=("spotify")
@@ -155,6 +164,7 @@ install_apps_interactive() {
             chrome) install_chrome ;;
             slack) install_slack ;;
             teams) install_teams ;;
+            outlook) install_outlook ;;
             jetbrains-toolbox) install_jetbrains_toolbox ;;
             vscode) install_vscode ;;
             spotify) install_spotify ;;

@@ -23,6 +23,7 @@ apps:
   - chrome
   - slack
   - teams
+  - outlook
   - jetbrains-toolbox
   # - vscode
   # - discord
@@ -90,6 +91,7 @@ startup_apps:
   - PhpStorm
   - Slack
   - Microsoft Teams
+  - Microsoft Outlook
   - Google Chrome
   - Docker
   - iTerm

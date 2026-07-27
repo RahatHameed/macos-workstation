@@ -52,6 +52,7 @@ cd macos-workstation
 | Google Chrome | `google-chrome` |
 | Slack | `slack` |
 | Microsoft Teams | `microsoft-teams` |
+| Microsoft Outlook | `microsoft-outlook` |
 | JetBrains Toolbox | `jetbrains-toolbox` |
 
 **Optional (via config or interactive mode):**
@@ -460,7 +461,7 @@ Because it needs sudo, `startup-office.sh` skips it silently at login when no pa
 
 ### startup/startup-office.sh
 
-Launches work apps at login: PhpStorm, Slack, Teams, Chrome, Outlook PWA, Docker, iTerm2/Terminal. Apps that are not installed are skipped rather than erroring.
+Launches work apps at login: PhpStorm, Slack, Teams, Outlook, Chrome, Docker, iTerm2/Terminal. Outlook uses the native client when present, falling back to the Chrome PWA that the Ubuntu setup relies on. Apps that are not installed are skipped rather than erroring.
 
 Installed as a LaunchAgent by the desktop module:
 

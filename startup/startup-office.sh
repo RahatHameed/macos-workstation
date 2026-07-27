@@ -37,9 +37,13 @@ open_if_present "Microsoft Teams"
 open_if_present "Google Chrome"
 open_if_present "Docker"
 
-# Outlook as a Chrome PWA, matching the Ubuntu setup.
-# Replace the app id if yours differs (chrome://apps shows it).
-if [[ -d "/Applications/Google Chrome.app" ]]; then
+# Outlook. The Ubuntu setup runs it as a Chrome PWA because there is no Linux
+# client; macOS has a native one, so prefer that and keep the PWA only as a
+# fallback for machines where Outlook is not installed.
+if [[ -d "/Applications/Microsoft Outlook.app" ]]; then
+    open -g -a "Microsoft Outlook"
+elif [[ -d "/Applications/Google Chrome.app" ]]; then
+    # Replace the app id if yours differs (chrome://apps shows it)
     open -g -a "Google Chrome" --args \
         --profile-directory=Default \
         --app-id=faolnafnngnfdaknnbpnkhgohbobgegn
