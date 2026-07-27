@@ -68,6 +68,26 @@ cd macos-workstation
 | iTerm2 | `iterm2` |
 | Raycast | `raycast` |
 
+### A note on casks that need sudo
+
+Most casks just drop a `.app` into `/Applications` and need no password. A few
+(Microsoft Teams among them) wrap a `.pkg` and shell out to `/usr/sbin/installer`
+under `sudo`. In an unattended run there is no terminal for the prompt, so those
+fail.
+
+They no longer abort the rest of the run — the failure is recorded, the
+remaining apps install, and a summary at the end lists what to re-run
+interactively:
+
+```
+[!] The following casks did not install:
+  - microsoft-teams
+
+[i] Re-run these interactively so you can enter your password:
+
+  brew install --cask microsoft-teams
+```
+
 ## Usage
 
 ### Full Installation (defaults)

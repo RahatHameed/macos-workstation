@@ -110,6 +110,9 @@ install_apps() {
         install_jetbrains_toolbox
     fi
 
+    # Surface anything that failed, without having aborted the whole run
+    report_cask_failures || true
+
     return 0
 }
 
@@ -164,6 +167,8 @@ install_apps_interactive() {
             raycast) install_raycast ;;
         esac
     done
+
+    report_cask_failures || true
 }
 
 # Run if executed directly

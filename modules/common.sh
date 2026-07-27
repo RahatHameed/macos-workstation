@@ -129,6 +129,15 @@ brew_install() {
     fi
 }
 
+# Casks that failed to install, reported together at the end of a run.
+# A single failure must not abort the remaining installs - some casks wrap a
+# .pkg and need sudo, which is unavailable in an unattended run.
+#
+# An array, not a space-separated string: iterating an unquoted string relies
+# on word-splitting, which bash does but zsh does not. These files are bash,
+# but the array is unambiguous either way.
+CASK_FAILURES=()
+
 # Install a Homebrew cask (GUI app) if not present
 cask_install() {
     local cask="$1"
@@ -146,8 +155,38 @@ cask_install() {
     fi
 
     print_info "Installing $cask (cask)..."
-    run brew install --cask "$cask"
-    print_status "$cask installed"
+
+    if run brew install --cask "$cask"; then
+        print_status "$cask installed"
+        return 0
+    fi
+
+    # Record and continue rather than killing the run under `set -e`
+    print_error "$cask failed to install"
+    CASK_FAILURES+=("$cask")
+    return 0
+}
+
+# Print a summary of casks that failed, with the likely cause.
+# Returns 1 if anything failed, so callers can surface a non-zero exit.
+report_cask_failures() {
+    [[ ${#CASK_FAILURES[@]} -eq 0 ]] && return 0
+
+    echo ""
+    print_warning "The following casks did not install:"
+    local cask
+    for cask in "${CASK_FAILURES[@]}"; do
+        echo "  - $cask"
+    done
+    echo ""
+    print_info "Most often this is a cask that wraps a .pkg installer and needs"
+    print_info "sudo. Re-run these interactively so you can enter your password:"
+    echo ""
+    for cask in "${CASK_FAILURES[@]}"; do
+        echo "  brew install --cask $cask"
+    done
+    echo ""
+    return 1
 }
 
 # Add a Homebrew tap if not already tapped
