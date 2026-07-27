@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  -h, --help          Show this help message"
             echo "  -m, --module NAME   Uninstall specific module"
-            echo "                      Modules: shell, git, ssh, apps, docker, desktop, vpn"
+            echo "                      Modules: shell, git, ssh, signing, apps, docker, desktop, vpn"
             echo "  --all               Uninstall everything"
             echo "  --dry-run           Show what would be removed"
             echo ""
@@ -198,6 +198,32 @@ uninstall_ssh() {
 
     print_warning "SSH keys kept for safety (remove manually: rm ~/.ssh/id_ed25519*)"
     print_warning "Keychain entry kept (remove via Keychain Access if needed)"
+}
+
+uninstall_signing() {
+    print_section "Disabling Commit Signing"
+
+    print_info "Removing git signing configuration..."
+
+    if [[ "$DRY_RUN" == true ]]; then
+        print_info "[DRY-RUN] Would unset commit.gpgsign, tag.gpgsign, gpg.format,"
+        print_info "[DRY-RUN]   user.signingkey, gpg.ssh.allowedSignersFile, gpg.program"
+    else
+        git config --global --unset commit.gpgsign 2>/dev/null || true
+        git config --global --unset tag.gpgsign 2>/dev/null || true
+        git config --global --unset gpg.format 2>/dev/null || true
+        git config --global --unset user.signingkey 2>/dev/null || true
+        git config --global --unset gpg.ssh.allowedSignersFile 2>/dev/null || true
+        git config --global --unset gpg.program 2>/dev/null || true
+        print_status "Signing configuration removed"
+    fi
+
+    # The allowed_signers file and any GPG keys are user data - keeping them
+    # means re-enabling signing later does not need a new key.
+    print_warning "~/.config/git/allowed_signers kept (delete manually if unwanted)"
+    print_warning "GPG keys kept (list with: gpg --list-secret-keys)"
+    print_warning "Keys registered on GitHub must be removed there:"
+    echo "  https://github.com/settings/keys"
 }
 
 uninstall_apps() {
@@ -395,6 +421,7 @@ run_interactive() {
     confirm "Uninstall Zsh + Oh My Zsh?" && uninstall_shell
     confirm "Remove Git aliases?" && uninstall_git
     confirm "Remove SSH configuration?" && uninstall_ssh
+    confirm "Disable commit signing?" && uninstall_signing
     confirm "Uninstall applications (Chrome, Slack, etc.)?" && uninstall_apps
     confirm "Uninstall Docker?" && uninstall_docker
     confirm "Revert desktop customizations?" && uninstall_desktop
@@ -409,13 +436,14 @@ run_module() {
         shell) uninstall_shell ;;
         git) uninstall_git ;;
         ssh) uninstall_ssh ;;
+        signing) uninstall_signing ;;
         apps) uninstall_apps ;;
         docker) uninstall_docker ;;
         desktop) uninstall_desktop ;;
         vpn) uninstall_vpn ;;
         *)
             print_error "Unknown module: $MODULE"
-            echo "Available modules: shell, git, ssh, apps, docker, desktop, vpn"
+            echo "Available modules: shell, git, ssh, signing, apps, docker, desktop, vpn"
             exit 1
             ;;
     esac
@@ -439,6 +467,7 @@ run_all() {
     uninstall_desktop
     uninstall_apps
     uninstall_docker
+    uninstall_signing
     uninstall_ssh
     uninstall_git
     uninstall_shell

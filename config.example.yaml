@@ -9,6 +9,7 @@ modules:
   shell: true        # Zsh + Oh My Zsh
   git: true          # Git configuration + aliases
   ssh: true          # SSH key + keychain integration
+  signing: true      # Signed commits (SSH or GPG)
   apps: true         # Work applications
   docker: true       # Docker Desktop or Colima
   desktop: true      # Dock, Finder, keyboard, fonts
@@ -34,6 +35,24 @@ apps:
   # - iterm2
   # - raycast
   # - screen-sharing   # prints instructions; macOS VNC is built in
+
+# ============================================
+# Commit signing
+# ============================================
+signing:
+  # method: ssh | gpg | none
+  #
+  #   ssh   Reuses ~/.ssh/id_ed25519 (git 2.34+). Nothing to install, no
+  #         second key to back up. GitHub shows these as "Verified" exactly
+  #         like GPG. Recommended.
+  #   gpg   Real OpenPGP via gnupg + pinentry-mac. Pick this only if you need
+  #         signing outside GitHub (releases, email) or policy demands it.
+  #   none  Leave signing alone.
+  #
+  # With ssh you must add the key to GitHub TWICE - once as an
+  # Authentication key, once as a Signing key. They are separate entries
+  # even though the key material is identical.
+  method: ssh
 
 # ============================================
 # Docker

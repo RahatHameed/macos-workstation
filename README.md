@@ -37,6 +37,7 @@ cd macos-workstation
 | `shell` | Zsh + Oh My Zsh + autosuggestions/syntax-highlighting |
 | `git` | Git user, defaults, aliases, global `.DS_Store` ignore |
 | `ssh` | SSH key generation + Keychain integration |
+| `signing` | Signed commits via SSH key (or GPG) |
 | `apps` | Chrome, Slack, Teams, JetBrains Toolbox, etc. |
 | `docker` | Docker Desktop or Colima |
 | `desktop` | Dock, Finder, keyboard, screenshots, fonts, Rectangle |
@@ -88,6 +89,7 @@ cd macos-workstation
 ./install.sh -m shell      # Only Zsh + Oh My Zsh
 ./install.sh -m git        # Only Git configuration
 ./install.sh -m ssh        # Only SSH setup
+./install.sh -m signing    # Only commit signing
 ./install.sh -m apps       # Only applications
 ./install.sh -m docker     # Only Docker
 ./install.sh -m desktop    # Only macOS desktop settings
@@ -213,6 +215,7 @@ macos-workstation/
 │   ├── shell.sh            # Zsh + Oh My Zsh
 │   ├── git.sh              # Git configuration
 │   ├── ssh.sh              # SSH key + keychain
+│   ├── signing.sh          # Signed commits (SSH or GPG)
 │   ├── apps.sh             # Work applications
 │   ├── docker.sh           # Docker Desktop / Colima
 │   ├── desktop.sh          # Dock, Finder, keyboard, fonts
@@ -263,6 +266,76 @@ Configures:
 - **Copies the public key to the clipboard** with `pbcopy`
 
 There is no shell-rc `ssh-agent` block as on Linux — launchd already runs an agent for every session.
+
+## Signing Module
+
+Enables signed commits. Two backends, chosen in `config.yaml`:
+
+```yaml
+signing:
+  method: ssh   # ssh | gpg | none
+```
+
+### Why `ssh` is the default
+
+Since git 2.34 you can sign commits with an SSH key (`gpg.format=ssh`). GitHub
+verifies those signatures and renders the same **Verified** badge as GPG.
+
+| | SSH signing | GPG |
+|---|---|---|
+| Extra software | None | `gnupg` + `pinentry-mac` (needs Homebrew) |
+| Keys to manage | Reuses your existing SSH key | A second keypair to back up |
+| Passphrase prompts | None (agent + Keychain already handle it) | pinentry dialog |
+| Expiry / revocation | No built-in expiry | Real expiry and revocation certificates |
+| Useful outside GitHub | Not really | Signed releases, email, cross-forge trust |
+
+Pick `gpg` if you need OpenPGP interoperability or your organisation mandates
+it. Otherwise `ssh` gets you verified commits with strictly fewer moving parts.
+
+### The GitHub gotcha
+
+**You must add the same key to GitHub twice** — once as an *Authentication
+key* and once as a *Signing key*. They are separate entries even though the
+key material is byte-identical. With only the authentication entry your
+pushes work but every commit shows as **Unverified**.
+
+Both go through https://github.com/settings/ssh/new — just change the
+**Key type** dropdown on the second one.
+
+### What the module sets
+
+```bash
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true
+git config --global tag.gpgsign true
+git config --global gpg.ssh.allowedSignersFile ~/.config/git/allowed_signers
+```
+
+The `allowed_signers` file is what makes **local** verification work. Without
+it, git can produce signatures but `git log --show-signature` reports
+`No principal matched` — GitHub still verifies fine, but you cannot check your
+own history offline.
+
+Verify with:
+
+```bash
+git log --show-signature -1
+# Good "git" signature for you@example.com with ED25519 key SHA256:...
+```
+
+### GPG backend
+
+Choosing `method: gpg` installs `gnupg` and `pinentry-mac`, points the agent
+at pinentry so prompts appear as native dialogs (rather than failing inside
+GUI git clients), and generates an ed25519 key with no expiry if one does not
+already exist for your git email.
+
+Back the private key up — losing it means losing the identity:
+
+```bash
+gpg --armor --export-secret-keys YOUR_KEY_ID > gpg-private-backup.asc
+```
 
 ## Desktop Module
 

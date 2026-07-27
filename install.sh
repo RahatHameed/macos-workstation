@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -i, --interactive   Interactive mode (prompts for each option)"
             echo "  -c, --config FILE   Use custom config file"
             echo "  -m, --module NAME   Install specific module only"
-            echo "                      Modules: homebrew, shell, git, ssh, apps, docker, desktop, vpn, all"
+            echo "                      Modules: homebrew, shell, git, ssh, signing, apps, docker, desktop, vpn, all"
             echo "  --dry-run           Show what would be installed"
             echo "  --claude            Include Claude Code installation"
             echo ""
@@ -138,6 +138,7 @@ run_interactive() {
     confirm "Install Zsh + Oh My Zsh?" && modules+=("shell")
     confirm "Configure Git (user, aliases)?" && modules+=("git")
     confirm "Setup SSH key + keychain?" && modules+=("ssh")
+    confirm "Enable signed commits?" && modules+=("signing")
     confirm "Install work applications?" && modules+=("apps")
     confirm "Install Docker?" && modules+=("docker")
     confirm "Apply macOS desktop settings (Dock, Finder, keyboard)?" && modules+=("desktop")
@@ -153,6 +154,7 @@ run_interactive() {
                 shell) source "$ROOT_DIR/modules/shell.sh" && install_shell ;;
                 git) source "$ROOT_DIR/modules/git.sh" && install_git ;;
                 ssh) source "$ROOT_DIR/modules/ssh.sh" && install_ssh ;;
+                signing) source "$ROOT_DIR/modules/signing.sh" && install_signing "$CONFIG_FILE" ;;
                 apps) source "$ROOT_DIR/modules/apps.sh" && install_apps_interactive ;;
                 docker) source "$ROOT_DIR/modules/docker.sh" && install_docker "$CONFIG_FILE" ;;
                 desktop) source "$ROOT_DIR/modules/desktop.sh" && install_desktop "$CONFIG_FILE" ;;
@@ -189,6 +191,10 @@ run_module() {
             source "$ROOT_DIR/modules/ssh.sh"
             install_ssh
             ;;
+        signing)
+            source "$ROOT_DIR/modules/signing.sh"
+            install_signing "$CONFIG_FILE"
+            ;;
         apps)
             source "$ROOT_DIR/modules/apps.sh"
             install_apps "$CONFIG_FILE"
@@ -210,7 +216,7 @@ run_module() {
             ;;
         *)
             print_error "Unknown module: $module"
-            echo "Available modules: homebrew, shell, git, ssh, apps, docker, desktop, vpn, all"
+            echo "Available modules: homebrew, shell, git, ssh, signing, apps, docker, desktop, vpn, all"
             exit 1
             ;;
     esac
@@ -232,6 +238,9 @@ run_all() {
 
     source "$ROOT_DIR/modules/ssh.sh"
     install_ssh
+
+    source "$ROOT_DIR/modules/signing.sh"
+    install_signing "$CONFIG_FILE"
 
     source "$ROOT_DIR/modules/apps.sh"
     install_apps "$CONFIG_FILE"
@@ -290,6 +299,7 @@ main() {
     [[ -z "$MODULE" || "$MODULE" == "shell" || "$MODULE" == "all" ]] && echo "  - Zsh + Oh My Zsh"
     [[ -z "$MODULE" || "$MODULE" == "git" || "$MODULE" == "all" ]] && echo "  - Git configuration"
     [[ -z "$MODULE" || "$MODULE" == "ssh" || "$MODULE" == "all" ]] && echo "  - SSH key + keychain"
+    [[ -z "$MODULE" || "$MODULE" == "signing" || "$MODULE" == "all" ]] && echo "  - Signed commits"
     [[ -z "$MODULE" || "$MODULE" == "apps" || "$MODULE" == "all" ]] && echo "  - Work applications"
     [[ -z "$MODULE" || "$MODULE" == "docker" || "$MODULE" == "all" ]] && echo "  - Docker"
     [[ -z "$MODULE" || "$MODULE" == "desktop" || "$MODULE" == "all" ]] && echo "  - macOS desktop settings"
