@@ -2,11 +2,24 @@
 # startup-office.sh
 # Launches essential work applications on login.
 #
-# Installed as a LaunchAgent by modules/desktop.sh:
-#   ~/Library/LaunchAgents/com.workstation.startup-office.plist
+# Not installed automatically. To run it at login, register it as a
+# LaunchAgent - launchd owns login-time execution on macOS:
 #
-# On Ubuntu this is an autostart .desktop entry; on macOS launchd owns
-# login-time execution, so the equivalent is a LaunchAgent plist.
+#   cat > ~/Library/LaunchAgents/com.workstation.startup-office.plist <<EOF
+#   <?xml version="1.0" encoding="UTF-8"?>
+#   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+#     "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+#   <plist version="1.0">
+#   <dict>
+#     <key>Label</key><string>com.workstation.startup-office</string>
+#     <key>ProgramArguments</key><array><string>PATH_TO_THIS_SCRIPT</string></array>
+#     <key>RunAtLoad</key><true/>
+#     <key>StandardOutPath</key><string>/tmp/startup-office.log</string>
+#     <key>StandardErrorPath</key><string>/tmp/startup-office.err</string>
+#   </dict>
+#   </plist>
+#   EOF
+#   launchctl load ~/Library/LaunchAgents/com.workstation.startup-office.plist
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/../config.yaml"
@@ -37,17 +50,7 @@ open_if_present "Microsoft Teams"
 open_if_present "Google Chrome"
 open_if_present "Docker"
 
-# Outlook. The Ubuntu setup runs it as a Chrome PWA because there is no Linux
-# client; macOS has a native one, so prefer that and keep the PWA only as a
-# fallback for machines where Outlook is not installed.
-if [[ -d "/Applications/Microsoft Outlook.app" ]]; then
-    open -g -a "Microsoft Outlook"
-elif [[ -d "/Applications/Google Chrome.app" ]]; then
-    # Replace the app id if yours differs (chrome://apps shows it)
-    open -g -a "Google Chrome" --args \
-        --profile-directory=Default \
-        --app-id=faolnafnngnfdaknnbpnkhgohbobgegn
-fi
+open_if_present "Microsoft Outlook"
 
 # Terminal: prefer iTerm2 if installed
 if [[ -d "/Applications/iTerm.app" ]]; then

@@ -24,8 +24,7 @@ install_teams() {
     cask_install "microsoft-teams" "Microsoft Teams"
 }
 
-# The Ubuntu repo has no equivalent - it runs Outlook as a Chrome PWA because
-# there is no Linux client. macOS has a native one.
+# Note: a .pkg cask, so it needs sudo and cannot install unattended.
 install_outlook() {
     cask_install "microsoft-outlook" "Microsoft Outlook"
 }

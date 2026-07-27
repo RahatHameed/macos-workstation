@@ -12,7 +12,6 @@ modules:
   signing: true      # Signed commits (SSH or GPG)
   apps: true         # Work applications
   docker: true       # Docker Desktop or Colima
-  desktop: true      # Dock, Finder, keyboard, fonts
   vpn: true          # VPN client
 
 # ============================================
@@ -41,18 +40,15 @@ apps:
 # Commit signing
 # ============================================
 signing:
-  # method: ssh | gpg | none
+  # method: ssh | none
   #
   #   ssh   Reuses ~/.ssh/id_ed25519 (git 2.34+). Nothing to install, no
-  #         second key to back up. GitHub shows these as "Verified" exactly
-  #         like GPG. Recommended.
-  #   gpg   Real OpenPGP via gnupg + pinentry-mac. Pick this only if you need
-  #         signing outside GitHub (releases, email) or policy demands it.
+  #         second key to back up. GitHub shows these as "Verified".
   #   none  Leave signing alone.
   #
-  # With ssh you must add the key to GitHub TWICE - once as an
-  # Authentication key, once as a Signing key. They are separate entries
-  # even though the key material is identical.
+  # You must add the key to GitHub TWICE - once as an Authentication key,
+  # once as a Signing key. They are separate entries even though the key
+  # material is identical.
   method: ssh
 
 # ============================================
@@ -65,19 +61,6 @@ docker:
   #                   licence at companies above Docker's size threshold.
   #   colima          Open-source Lima VM + docker CLI. No GUI, no licence.
   runtime: docker-desktop
-
-# ============================================
-# Desktop settings
-# ============================================
-desktop:
-  # Dock icon size in pixels
-  dock_size: 48
-
-  # Auto-hide the Dock
-  dock_autohide: true
-
-  # Where screenshots are saved (default: ~/Screenshots)
-  screenshot_dir: ~/Screenshots
 
 # ============================================
 # Startup applications

@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  -h, --help          Show this help message"
             echo "  -m, --module NAME   Uninstall specific module"
-            echo "                      Modules: shell, git, ssh, signing, apps, docker, desktop, vpn"
+            echo "                      Modules: shell, git, ssh, signing, apps, docker, vpn"
             echo "  --all               Uninstall everything"
             echo "  --dry-run           Show what would be removed"
             echo ""
@@ -207,21 +207,19 @@ uninstall_signing() {
 
     if [[ "$DRY_RUN" == true ]]; then
         print_info "[DRY-RUN] Would unset commit.gpgsign, tag.gpgsign, gpg.format,"
-        print_info "[DRY-RUN]   user.signingkey, gpg.ssh.allowedSignersFile, gpg.program"
+        print_info "[DRY-RUN]   user.signingkey and gpg.ssh.allowedSignersFile"
     else
         git config --global --unset commit.gpgsign 2>/dev/null || true
         git config --global --unset tag.gpgsign 2>/dev/null || true
         git config --global --unset gpg.format 2>/dev/null || true
         git config --global --unset user.signingkey 2>/dev/null || true
         git config --global --unset gpg.ssh.allowedSignersFile 2>/dev/null || true
-        git config --global --unset gpg.program 2>/dev/null || true
         print_status "Signing configuration removed"
     fi
 
     # The allowed_signers file and any GPG keys are user data - keeping them
     # means re-enabling signing later does not need a new key.
     print_warning "~/.config/git/allowed_signers kept (delete manually if unwanted)"
-    print_warning "GPG keys kept (list with: gpg --list-secret-keys)"
     print_warning "Keys registered on GitHub must be removed there:"
     echo "  https://github.com/settings/keys"
 }
@@ -279,87 +277,6 @@ uninstall_docker() {
 
     print_warning "Docker images and volumes in ~/Library/Containers/com.docker.docker are kept"
     print_warning "Remove them manually to reclaim disk space (this cannot be undone)"
-}
-
-uninstall_desktop() {
-    print_section "Reverting Desktop Customizations"
-
-    # Login item
-    local plist="$HOME/Library/LaunchAgents/com.workstation.startup-office.plist"
-    if [[ -f "$plist" ]]; then
-        print_info "Removing login item..."
-        if [[ "$DRY_RUN" == true ]]; then
-            print_info "[DRY-RUN] Would unload and remove $plist"
-        else
-            launchctl unload "$plist" 2>/dev/null || true
-            rm -f "$plist"
-            print_status "Login item removed"
-        fi
-    fi
-
-    # Dock - delete our keys so macOS falls back to its defaults
-    print_info "Reverting Dock settings..."
-    defaults_delete com.apple.dock tilesize
-    defaults_delete com.apple.dock autohide
-    defaults_delete com.apple.dock autohide-delay
-    defaults_delete com.apple.dock autohide-time-modifier
-    defaults_delete com.apple.dock mineffect
-    defaults_delete com.apple.dock minimize-to-application
-    defaults_delete com.apple.dock show-recents
-    defaults_delete com.apple.dock show-process-indicators
-    restart_app Dock
-    print_status "Dock settings reverted"
-
-    # Finder
-    print_info "Reverting Finder settings..."
-    defaults_delete com.apple.finder AppleShowAllFiles
-    defaults_delete com.apple.finder ShowPathbar
-    defaults_delete com.apple.finder ShowStatusBar
-    defaults_delete com.apple.finder FXPreferredViewStyle
-    defaults_delete com.apple.finder FXDefaultSearchScope
-    defaults_delete com.apple.finder FXEnableExtensionChangeWarning
-    defaults_delete com.apple.finder _FXSortFoldersFirst
-    defaults_delete com.apple.finder _FXShowPosixPathInTitle
-    defaults_delete com.apple.desktopservices DSDontWriteNetworkStores
-    defaults_delete com.apple.desktopservices DSDontWriteUSBStores
-    defaults_delete NSGlobalDomain AppleShowAllExtensions
-    restart_app Finder
-    print_status "Finder settings reverted"
-
-    # Keyboard
-    print_info "Reverting keyboard settings..."
-    defaults_delete NSGlobalDomain KeyRepeat
-    defaults_delete NSGlobalDomain InitialKeyRepeat
-    defaults_delete NSGlobalDomain ApplePressAndHoldEnabled
-    defaults_delete NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled
-    defaults_delete NSGlobalDomain NSAutomaticDashSubstitutionEnabled
-    defaults_delete NSGlobalDomain NSAutomaticCapitalizationEnabled
-    defaults_delete NSGlobalDomain NSAutomaticSpellingCorrectionEnabled
-    defaults_delete NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled
-    defaults_delete NSGlobalDomain AppleKeyboardUIMode
-    print_status "Keyboard settings reverted"
-
-    # Screenshots
-    print_info "Reverting screenshot settings..."
-    defaults_delete com.apple.screencapture location
-    defaults_delete com.apple.screencapture type
-    defaults_delete com.apple.screencapture disable-shadow
-    restart_app SystemUIServer
-    print_status "Screenshot settings reverted (~/Screenshots kept)"
-
-    # Misc
-    print_info "Reverting system behaviour..."
-    defaults_delete NSGlobalDomain NSNavPanelExpandedStateForSaveMode
-    defaults_delete NSGlobalDomain PMPrintingExpandedStateForPrint
-    defaults_delete NSGlobalDomain NSDocumentSaveNewDocumentsToCloud
-    defaults_delete com.apple.LaunchServices LSQuarantine
-    defaults_delete com.apple.menuextra.battery ShowPercent
-    print_status "System behaviour reverted"
-
-    cask_uninstall "rectangle" "Rectangle"
-
-    print_warning "Fonts kept (remove manually: brew uninstall --cask font-inter font-jetbrains-mono font-fira-code)"
-    print_warning "Log out and back in for all changes to fully apply"
 }
 
 uninstall_vpn() {
@@ -425,7 +342,6 @@ run_interactive() {
     confirm "Disable commit signing?" && uninstall_signing
     confirm "Uninstall applications (Chrome, Slack, etc.)?" && uninstall_apps
     confirm "Uninstall Docker?" && uninstall_docker
-    confirm "Revert desktop customizations?" && uninstall_desktop
     confirm "Uninstall VPN?" && uninstall_vpn
 }
 
@@ -440,11 +356,10 @@ run_module() {
         signing) uninstall_signing ;;
         apps) uninstall_apps ;;
         docker) uninstall_docker ;;
-        desktop) uninstall_desktop ;;
         vpn) uninstall_vpn ;;
         *)
             print_error "Unknown module: $MODULE"
-            echo "Available modules: shell, git, ssh, signing, apps, docker, desktop, vpn"
+            echo "Available modules: shell, git, ssh, signing, apps, docker, vpn"
             exit 1
             ;;
     esac
@@ -465,7 +380,6 @@ run_all() {
     fi
 
     uninstall_vpn
-    uninstall_desktop
     uninstall_apps
     uninstall_docker
     uninstall_signing

@@ -25,7 +25,7 @@ cd macos-workstation
 - **Interactive mode** - Choose components during installation
 - **Config file** - Customize via YAML config
 - **Idempotent** - Safe to run multiple times
-- **Reversible** - Every `defaults write` is undone by `uninstall.sh`
+- **Reversible** - `uninstall.sh` undoes what the modules change
 
 ## What's Included
 
@@ -37,10 +37,9 @@ cd macos-workstation
 | `shell` | Zsh + Oh My Zsh + autosuggestions/syntax-highlighting |
 | `git` | Git user, defaults, aliases, global `.DS_Store` ignore |
 | `ssh` | SSH key generation + Keychain integration |
-| `signing` | Signed commits via SSH key (or GPG) |
+| `signing` | Signed commits via SSH key |
 | `apps` | Chrome, Slack, Teams, JetBrains Toolbox, etc. |
 | `docker` | Docker Desktop or Colima |
-| `desktop` | Dock, Finder, keyboard, screenshots, fonts, Rectangle |
 | `vpn` | Mullvad, NordVPN, or ProtonVPN |
 
 ### Available Applications
@@ -113,7 +112,6 @@ interactively:
 ./install.sh -m signing    # Only commit signing
 ./install.sh -m apps       # Only applications
 ./install.sh -m docker     # Only Docker
-./install.sh -m desktop    # Only macOS desktop settings
 ./install.sh -m vpn        # Only VPN setup
 ```
 
@@ -148,7 +146,6 @@ modules:
   shell: true
   apps: true
   docker: true
-  desktop: true
 
 apps:
   - chrome
@@ -158,11 +155,6 @@ apps:
 
 docker:
   runtime: docker-desktop   # or colima
-
-desktop:
-  dock_size: 48
-  dock_autohide: true
-  screenshot_dir: ~/Screenshots
 ```
 
 ## Uninstall
@@ -181,47 +173,6 @@ desktop:
 - Docker images and volumes are kept
 - IPv6 is restored to automatic when the VPN is removed
 
-## Differences from the Ubuntu repo
-
-These are the places where a direct port was impossible, and what was done instead.
-
-| Ubuntu | macOS | Why |
-|--------|-------|-----|
-| `apt` / `snap` | Homebrew formulae and casks | No system package manager ships with macOS, hence the extra `homebrew` bootstrap module |
-| Plank dock | Native Dock via `defaults write` | Plank exists to imitate the macOS Dock; the real one is already here |
-| GNOME Tweaks, `gsettings` | `defaults write` + `killall Dock/Finder` | No GNOME |
-| Xorg session enforcement | *(dropped)* | Wayland/Xorg has no macOS equivalent |
-| WhiteSur macOS-style theme | *(dropped)* | It is a GTK theme that imitates macOS |
-| `~/.config/autostart/*.desktop` | LaunchAgent plist in `~/Library/LaunchAgents` | launchd owns login-time execution |
-| `ssh-agent` started from `.zshrc` | Keychain via `UseKeychain` / `--apple-use-keychain` | launchd already runs an agent per session |
-| `xclip` / `xsel` | `pbcopy` | Always present |
-| Docker Engine + Docker Desktop | Docker Desktop **or** Colima | Containers always run in a VM on macOS; no native engine |
-| `pkill docker-proxy` | Diagnose port holders with `lsof` | `docker-proxy` runs inside the VM, not on the host |
-| Xournal++ for PDF signing | Preview.app | Markup and stored signatures are built in |
-| `sysctl` IPv6 disable | `networksetup -setv6off` per service | macOS has no global IPv6 sysctl |
-| TigerVNC server | Built-in Screen Sharing | macOS ships a VNC server; the module just prints how to enable it |
-| NordVPN / ProtonVPN CLI | GUI app + `open -a` | **Neither vendor ships a macOS CLI** — see below |
-
-### VPN: read this before choosing a provider
-
-On Linux all three providers have a real CLI. On macOS **only Mullvad does.**
-
-| Provider | Install | Connect / disconnect | Status |
-|----------|---------|----------------------|--------|
-| Mullvad | `mullvad-vpn` cask | Full CLI control, including country/city | Exact, from the CLI |
-| NordVPN | `nordvpn` cask | Opens the app — you click Connect | Tunnel detected via default route |
-| ProtonVPN | `protonvpn` cask | Opens the app — you click Connect | Tunnel detected via default route |
-
-If you want scripted VPN switching on macOS, use Mullvad. The other two are installed and configured, but `vpn-connect.sh connect` can only bring their window up.
-
-Status detection for the GUI-only providers checks whether the default route runs over a `utun*` interface:
-
-```bash
-route -n get default | awk '/interface:/ {print $2}'
-```
-
-That is accurate for "a tunnel is up" but cannot tell you *which* provider or country, and it will also report true for other tunnels (iCloud Private Relay, a corporate VPN).
-
 ## Directory Structure
 
 ```
@@ -236,10 +187,9 @@ macos-workstation/
 │   ├── shell.sh            # Zsh + Oh My Zsh
 │   ├── git.sh              # Git configuration
 │   ├── ssh.sh              # SSH key + keychain
-│   ├── signing.sh          # Signed commits (SSH or GPG)
+│   ├── signing.sh          # Signed commits (SSH)
 │   ├── apps.sh             # Work applications
 │   ├── docker.sh           # Docker Desktop / Colima
-│   ├── desktop.sh          # Dock, Finder, keyboard, fonts
 │   └── vpn.sh              # VPN installation
 ├── startup/
 │   └── startup-office.sh   # Login apps launcher (via LaunchAgent)
@@ -253,8 +203,6 @@ macos-workstation/
 │       ├── mullvad.sh
 │       ├── nordvpn.sh
 │       └── protonvpn.sh
-├── utils/
-│   └── pdf-sign.sh         # PDF signing with Preview
 ├── troubleshooting/        # Issue tracking and solutions
 └── README.md
 ```
@@ -290,28 +238,16 @@ There is no shell-rc `ssh-agent` block as on Linux — launchd already runs an a
 
 ## Signing Module
 
-Enables signed commits. Two backends, chosen in `config.yaml`:
+Enables signed commits using your existing SSH key.
 
 ```yaml
 signing:
-  method: ssh   # ssh | gpg | none
+  method: ssh   # ssh | none
 ```
 
-### Why `ssh` is the default
-
 Since git 2.34 you can sign commits with an SSH key (`gpg.format=ssh`). GitHub
-verifies those signatures and renders the same **Verified** badge as GPG.
-
-| | SSH signing | GPG |
-|---|---|---|
-| Extra software | None | `gnupg` + `pinentry-mac` (needs Homebrew) |
-| Keys to manage | Reuses your existing SSH key | A second keypair to back up |
-| Passphrase prompts | None (agent + Keychain already handle it) | pinentry dialog |
-| Expiry / revocation | No built-in expiry | Real expiry and revocation certificates |
-| Useful outside GitHub | Not really | Signed releases, email, cross-forge trust |
-
-Pick `gpg` if you need OpenPGP interoperability or your organisation mandates
-it. Otherwise `ssh` gets you verified commits with strictly fewer moving parts.
+verifies those signatures and renders the same **Verified** badge as GPG, with
+nothing extra to install and no second keypair to back up.
 
 ### The GitHub gotcha
 
@@ -345,35 +281,6 @@ git log --show-signature -1
 # Good "git" signature for you@example.com with ED25519 key SHA256:...
 ```
 
-### GPG backend
-
-Choosing `method: gpg` installs `gnupg` and `pinentry-mac`, points the agent
-at pinentry so prompts appear as native dialogs (rather than failing inside
-GUI git clients), and generates an ed25519 key with no expiry if one does not
-already exist for your git email.
-
-Back the private key up — losing it means losing the identity:
-
-```bash
-gpg --armor --export-secret-keys YOUR_KEY_ID > gpg-private-backup.asc
-```
-
-## Desktop Module
-
-All changes are plain `defaults` keys, each reverted by `uninstall.sh`.
-
-**Dock** — size, autohide with zero delay, scale minimise effect, minimise into app icon, no recent apps.
-
-**Finder** — show all extensions and hidden files, path + status bars, list view, search current folder, folders first, POSIX path in title, no `.DS_Store` on network/USB volumes.
-
-**Keyboard** — fast key repeat (`KeyRepeat=2`, `InitialKeyRepeat=15`), press-and-hold disabled so key repeat works in Vim, all the "smart" quote/dash/capitalisation substitutions off, full keyboard access.
-
-**Screenshots** — saved to `~/Screenshots` as PNG without the window drop-shadow.
-
-**Fonts** — Inter, JetBrains Mono, Fira Code.
-
-**Window management** — Rectangle (needs accessibility permissions granted manually).
-
 ## Docker Module
 
 macOS has no native Docker Engine — containers always run in a Linux VM. Two runtimes:
@@ -393,6 +300,27 @@ docker:
 With Colima the module also links `docker-compose` and `docker-buildx` into `~/.docker/cli-plugins`, which Homebrew does not do.
 
 ## VPN Module
+
+### macOS caveat: only Mullvad ships a CLI
+
+On Linux all three providers have a real CLI. On macOS **only Mullvad does.**
+
+| Provider | Install | Connect / disconnect | Status |
+|----------|---------|----------------------|--------|
+| Mullvad | `mullvad-vpn` cask | Full CLI control, including country/city | Exact, from the CLI |
+| NordVPN | `nordvpn` cask | Opens the app — you click Connect | Tunnel detected via default route |
+| ProtonVPN | `protonvpn` cask | Opens the app — you click Connect | Tunnel detected via default route |
+
+If you want scripted VPN switching on macOS, use Mullvad. The other two are installed and configured, but `vpn-connect.sh connect` can only bring their window up.
+
+Status detection for the GUI-only providers checks whether the default route runs over a `utun*` interface:
+
+```bash
+route -n get default | awk '/interface:/ {print $2}'
+```
+
+That is accurate for "a tunnel is up" but cannot tell you *which* provider or country, and it will also report true for other tunnels (iCloud Private Relay, a corporate VPN).
+
 
 Set your provider in `config.yaml`:
 
@@ -461,9 +389,10 @@ Because it needs sudo, `startup-office.sh` skips it silently at login when no pa
 
 ### startup/startup-office.sh
 
-Launches work apps at login: PhpStorm, Slack, Teams, Outlook, Chrome, Docker, iTerm2/Terminal. Outlook uses the native client when present, falling back to the Chrome PWA that the Ubuntu setup relies on. Apps that are not installed are skipped rather than erroring.
+Launches work apps at login: PhpStorm, Slack, Teams, Outlook, Chrome, Docker, iTerm2/Terminal. Apps that are not installed are skipped rather than erroring.
 
-Installed as a LaunchAgent by the desktop module:
+Not installed automatically — register it as a LaunchAgent yourself (the
+script's header comment has the plist to paste). Then:
 
 ```bash
 # Check it is loaded
@@ -488,15 +417,6 @@ Apps open with `open -g` so they do not steal focus while you log in.
 
 Unlike the Ubuntu version, removing containers is **opt-in**. The Linux script does it on every login; that is destructive enough that it should be a deliberate flag.
 
-### utils/pdf-sign.sh
-
-```bash
-./utils/pdf-sign.sh document.pdf    # Open specific PDF
-./utils/pdf-sign.sh                 # Native file picker
-```
-
-Nothing to install — Preview has Markup and stored signatures built in.
-
 ## Shell Aliases
 
 Add to your `~/.zshrc`:
@@ -506,7 +426,6 @@ Add to your `~/.zshrc`:
 alias docker-cleanup='$HOME/scripts/docker/docker-cleanup.sh'
 alias vpn='$HOME/scripts/vpn/vpn-connect.sh'
 alias ipv6='$HOME/scripts/vpn/ipv6-toggle.sh'
-alias pdf-sign='$HOME/scripts/utils/pdf-sign.sh'
 ```
 
 Then `source ~/.zshrc`.
@@ -516,7 +435,6 @@ Then `source ~/.zshrc`.
 | `docker-cleanup` | `docker/docker-cleanup.sh` | Diagnose port conflicts, prune networks |
 | `vpn` | `vpn/vpn-connect.sh` | VPN connection manager |
 | `ipv6` | `vpn/ipv6-toggle.sh` | IPv6 leak protection |
-| `pdf-sign` | `utils/pdf-sign.sh` | Open PDF in Preview for signing |
 
 ## Requirements
 
@@ -533,11 +451,9 @@ macOS ships bash 3.2 (2007) at `/bin/bash` for licensing reasons. Every script h
 ## Post-Installation
 
 1. **Open a new terminal** for shell and PATH changes to take effect
-2. **Grant Rectangle accessibility permissions** — System Settings > Privacy & Security > Accessibility
-3. **Launch Docker.app once** to finish its setup and grant privileges
-4. **Add your SSH key to GitHub** — it is already on your clipboard
-5. **Sign into your VPN app** if using NordVPN or ProtonVPN
-6. **Log out and back in** for all Dock/Finder changes to settle
+2. **Launch Docker.app once** to finish its setup and grant privileges
+3. **Add your SSH key to GitHub** — it is already on your clipboard
+4. **Sign into your VPN app** if using NordVPN or ProtonVPN
 
 ## Customization
 
@@ -557,19 +473,6 @@ Then add it to `install_apps()`, `install_apps_interactive()`, and `config.examp
 
 Edit `startup/startup-office.sh`.
 
-### Add your own macOS defaults
-
-Add to the relevant `configure_*` function in `modules/desktop.sh` using the `defaults_set` helper, **and add the matching `defaults_delete` to `uninstall_desktop()` in `uninstall.sh`** so the change stays reversible.
-
-To discover a key, change the setting in System Settings and diff:
-
-```bash
-defaults read > /tmp/before.txt
-# change the setting in the UI
-defaults read > /tmp/after.txt
-diff /tmp/before.txt /tmp/after.txt
-```
-
 ## License
 
 MIT License - feel free to use and modify.
@@ -585,7 +488,6 @@ Contributions are welcome.
 | **New modules** | Node.js/nvm, Python/pyenv, Ruby/rbenv, Go, Rust |
 | **New apps** | Add more casks to `modules/apps.sh` |
 | **VPN providers** | Any vendor with a macOS CLI |
-| **Defaults** | More `defaults write` tweaks (with matching reverts) |
 | **Dev tools** | Database clients, API tools, cloud CLIs |
 | **Documentation** | Improve docs, add screenshots |
 | **Bug fixes** | Fix issues, improve error handling |
@@ -633,7 +535,7 @@ Contributions are welcome.
 ### Guidelines
 
 - Keep scripts **idempotent** (safe to run multiple times)
-- Support **`--dry-run`** — route side effects through `run`, `defaults_set`, or an explicit `$DRY_RUN` check
+- Support **`--dry-run`** — route side effects through `run` or an explicit `$DRY_RUN` check
 - Use functions from `modules/common.sh`
 - **Every change must be reversible** in `uninstall.sh`
 - Stay **bash 3.2 compatible**
