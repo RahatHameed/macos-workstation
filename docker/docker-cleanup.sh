@@ -232,7 +232,10 @@ else
         exit 1
     fi
 
-    # system prune only drops *dangling* build cache; -a clears the whole builder
+    # Backstop: `system prune -a` already clears the default builder's cache, so
+    # this is usually a 0B no-op. It earns its place for buildx builders using
+    # the docker-container driver, whose cache lives outside the daemon's own
+    # accounting and survives system prune.
     if [[ "$PRUNE_ALL" == true ]]; then
         if BUILDER_OUTPUT=$(docker builder prune -af 2>&1); then
             echo "$BUILDER_OUTPUT" | tail -1

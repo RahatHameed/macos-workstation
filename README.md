@@ -433,7 +433,7 @@ That split exists because `startup-office.sh` runs this on every login. The defa
 
 ### Reclaiming disk
 
-`--prune-cache` clears build cache, dangling images and stopped containers. `--prune-all` goes further: every unused image plus a full `docker builder prune -af`, because `system prune` alone leaves non-dangling build cache behind. `--volumes` is separate from both since it destroys data.
+`--prune-cache` clears build cache, dangling images and stopped containers. `--prune-all` goes further: every unused image, plus a `docker builder prune -af` backstop. That backstop normally reports `0B`, since `system prune -a` already clears the default builder — it exists for buildx builders on the `docker-container` driver, whose cache sits outside the daemon's accounting and survives `system prune`. `--volumes` is separate from both since it destroys data.
 
 Anything destructive prompts for confirmation first — unless you pass `--yes`, or stdin is not a terminal. A non-interactive caller (login script, cron, CI) already stated its intent through the flags and must not block waiting on input.
 
