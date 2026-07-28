@@ -194,7 +194,7 @@ macos-workstation/
 ├── startup/
 │   └── startup-office.sh   # Login apps launcher (via LaunchAgent)
 ├── docker/
-│   └── docker-cleanup.sh   # Port conflict diagnosis + prune
+│   └── docker-cleanup.sh   # Port conflict diagnosis + prune (state and disk)
 ├── vpn/
 │   ├── vpn-connect.sh      # VPN connection wrapper
 │   ├── ipv6-toggle.sh      # IPv6 leak protection
@@ -411,11 +411,35 @@ Apps open with `open -g` so they do not steal focus while you log in.
 
 ```bash
 ./docker/docker-cleanup.sh                     # Prune networks, report port holders
-./docker/docker-cleanup.sh --remove-containers # Also force-remove ALL containers
 ./docker/docker-cleanup.sh --ports 80,443,3306 # Check specific ports
+./docker/docker-cleanup.sh --remove-containers # Also force-remove ALL containers
+./docker/docker-cleanup.sh --prune-cache       # Also clear build cache + dangling images
+./docker/docker-cleanup.sh --prune-all         # As above, plus ALL unused images
+./docker/docker-cleanup.sh --volumes           # Also remove unused volumes - DATA LOSS
+./docker/docker-cleanup.sh --dry-run           # Report only, delete nothing
+./docker/docker-cleanup.sh --prune-all --yes   # Skip the confirmation prompt
 ```
 
 Unlike the Ubuntu version, removing containers is **opt-in**. The Linux script does it on every login; that is destructive enough that it should be a deliberate flag.
+
+The script does two jobs, and only the first runs by default:
+
+| | Default | Flags |
+|---|---|---|
+| Runtime state | port-conflict diagnosis, `network prune` | `--remove-containers` |
+| Disk state | *nothing* | `--prune-cache`, `--prune-all`, `--volumes` |
+
+That split exists because `startup-office.sh` runs this on every login. The default path never deletes anything you would miss and never prompts.
+
+### Reclaiming disk
+
+`--prune-cache` clears build cache, dangling images and stopped containers. `--prune-all` goes further: every unused image plus a full `docker builder prune -af`, because `system prune` alone leaves non-dangling build cache behind. `--volumes` is separate from both since it destroys data.
+
+Anything destructive prompts for confirmation first — unless you pass `--yes`, or stdin is not a terminal. A non-interactive caller (login script, cron, CI) already stated its intent through the flags and must not block waiting on input.
+
+macOS-specific caveat: containers live in a VM backed by a sparse disk image (`Docker.raw`, or colima's `diffdisk`). Pruning frees space *inside* the VM, but the host file only shrinks once the guest TRIMs it back, so `--prune-cache` prints the image size before and after. If it did not shrink, restart Docker Desktop — or `colima stop && colima start` — to trigger the TRIM.
+
+Use `--dry-run` to see what would go before committing to it.
 
 ## Shell Aliases
 
@@ -432,7 +456,7 @@ Then `source ~/.zshrc`.
 
 | Alias | Script | Description |
 |-------|--------|-------------|
-| `docker-cleanup` | `docker/docker-cleanup.sh` | Diagnose port conflicts, prune networks |
+| `docker-cleanup` | `docker/docker-cleanup.sh` | Diagnose port conflicts, prune networks and disk |
 | `vpn` | `vpn/vpn-connect.sh` | VPN connection manager |
 | `ipv6` | `vpn/ipv6-toggle.sh` | IPv6 leak protection |
 
